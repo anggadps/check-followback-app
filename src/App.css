@@ -40,3 +40,7 @@ footer p {
   color: #6c757d;
   font-size: 0.9rem;
 }
+
+.btn-secondary {
+  margin-bottom: 20px;
+}
