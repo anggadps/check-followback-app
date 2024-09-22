@@ -7,6 +7,7 @@ function App() {
   const [followingFile, setFollowingFile] = useState(null);
   const [followersFile, setFollowersFile] = useState(null);
   const [language, setLanguage] = useState('en'); // State untuk bahasa
+  const [errorMessage, setErrorMessage] = useState(null); // State untuk error
 
   const translations = {
     en: {
@@ -17,6 +18,7 @@ function App() {
       nonFollowBack: "Accounts not following back (href):",
       noData: "All accounts follow back or no files uploaded.",
       alertMessage: "Please upload both following.json and followers.json.",
+      invalidJSON: "Invalid JSON format or incorrect data structure.",
       copyright: "© 2024 AnggaDPS",
       languageButton: "Switch to Indonesian"
     },
@@ -28,6 +30,7 @@ function App() {
       nonFollowBack: "Akun yang tidak follow-back (href):",
       noData: "Semua akun sudah follback atau belum ada file yang diunggah.",
       alertMessage: "Mohon unggah kedua file following.json dan followers.json.",
+      invalidJSON: "Format JSON tidak valid atau struktur data salah.",
       copyright: "© 2024 AnggaDPS",
       languageButton: "Ganti ke Bahasa Inggris"
     }
@@ -35,16 +38,49 @@ function App() {
 
   const t = translations[language];
 
+  // Fungsi untuk membaca file JSON yang diunggah dengan validasi format
   const readJSONFile = (file, callback) => {
     const reader = new FileReader();
     reader.onload = (event) => {
-      const data = JSON.parse(event.target.result);
-      callback(data);
+      try {
+        const data = JSON.parse(event.target.result);
+        callback(data);
+      } catch (error) {
+        setErrorMessage(t.invalidJSON);
+        console.error('Invalid JSON:', error);
+      }
     };
     reader.readAsText(file);
   };
 
+  // Fungsi untuk validasi struktur data following
+  const isValidFollowingData = (data) => {
+    return (
+      data && 
+      data.relationships_following &&
+      Array.isArray(data.relationships_following) &&
+      data.relationships_following.every(item => item.string_list_data && Array.isArray(item.string_list_data))
+    );
+  };
+
+  // Fungsi untuk validasi struktur data followers
+  const isValidFollowersData = (data) => {
+    return (
+      data &&
+      Array.isArray(data) &&
+      data.every(item => item.string_list_data && Array.isArray(item.string_list_data))
+    );
+  };
+
+  // Fungsi untuk memproses following dan followers dengan validasi
   const processFollowData = (followingData, followersData) => {
+    if (!isValidFollowingData(followingData) || !isValidFollowersData(followersData)) {
+      setErrorMessage(t.invalidJSON);
+      return;
+    }
+
+    setErrorMessage(null); // Reset error jika data valid
+
     const followingMap = {};
     followingData.relationships_following.forEach((relation) => {
       relation.string_list_data.forEach((account) => {
@@ -114,6 +150,12 @@ function App() {
         <button className="btn btn-primary btn-block mb-4" onClick={handleFileUpload}>
           {t.processFiles}
         </button>
+
+        {errorMessage && (
+          <div className="alert alert-danger">
+            {errorMessage}
+          </div>
+        )}
 
         <h4 className="text-center">{t.nonFollowBack}</h4>
         <ul className="list-group">
